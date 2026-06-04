@@ -1,0 +1,15 @@
+# Secrets — never commit
+.apipypi
+*.pypirc
+.env
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/

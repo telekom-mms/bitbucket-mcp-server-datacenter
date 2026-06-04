@@ -1,0 +1,46 @@
+[project]
+name = "bitbucket-mcp-server-datacenter"
+version = "0.1.1"
+description = "MCP server for Bitbucket Data Center (Server), not Bitbucket Cloud."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE*"]
+authors = [{ name = "hektor1966" }]
+keywords = ["mcp", "bitbucket", "bitbucket-data-center", "bitbucket-server", "fastmcp", "model-context-protocol"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Version Control",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = [
+    "fastmcp>=2.3.0",
+    "httpx>=0.27.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hektor1966/bitbucket-mcp-server-datacenter"
+Repository = "https://github.com/hektor1966/bitbucket-mcp-server-datacenter"
+Issues = "https://github.com/hektor1966/bitbucket-mcp-server-datacenter/issues"
+
+[project.scripts]
+bitbucket-mcp-server-datacenter = "bitbucket_mcp.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bitbucket_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

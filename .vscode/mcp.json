@@ -1,0 +1,27 @@
+{
+  "inputs": [
+    {
+      "id": "bitbucket_token",
+      "type": "promptString",
+      "description": "Bitbucket Data Center HTTP access token (sent as Bearer)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "bitbucket-datacenter": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}",
+        "bitbucket-mcp-server-datacenter"
+      ],
+      "env": {
+        "BITBUCKET_BASE_URL": "https://bitbucket-stage.telekom-mms.com",
+        "BITBUCKET_TOKEN": "${input:bitbucket_token}",
+        "ENABLE_TOOLS": "all"
+      }
+    }
+  }
+}
