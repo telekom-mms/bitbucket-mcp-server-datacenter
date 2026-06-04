@@ -163,40 +163,67 @@ ENABLE_TOOLS="read" \
 uv run bitbucket-mcp-server-datacenter
 ```
 
-## Publishing (maintainers)
+## Releasing (maintainers)
 
 The package ships a console entry point
 (`bitbucket-mcp-server-datacenter`) and builds with `hatchling`, so consumers
 can run it with `uvx` without cloning (see
 [Install / use without cloning](#install--use-without-cloning)).
 
-Build and inspect the distributions locally:
+Releases are automated: the
+[`.github/workflows/release.yml`](.github/workflows/release.yml) workflow runs
+the tests, builds the wheel + sdist, and publishes to PyPI via
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC, **no
+stored token**) whenever a `v*` tag is pushed.
+
+### One-time setup
+
+Already configured for this project; only needed when forking or re-creating it.
+
+1. **PyPI trusted publisher** — on the project's
+   [publishing settings](https://pypi.org/manage/project/bitbucket-mcp-server-datacenter/settings/publishing/),
+   add a GitHub publisher with:
+   - Owner: `hektor1966`
+   - Repository: `bitbucket-mcp-server-datacenter`
+   - Workflow: `release.yml`
+   - Environment: `pypi`
+2. **GitHub environment** — create an environment named `pypi` in the repo
+   settings. Optionally restrict its deployment branches/tags to `v*` so only
+   release tags can publish.
+
+### Cutting a release
+
+1. Update `version` in [`pyproject.toml`](pyproject.toml) following
+   [SemVer](https://semver.org/). PyPI never allows re-uploading an existing
+   version, so every release needs a new number.
+2. Commit the bump and push to `main`.
+3. Tag the release and push the tag — this triggers the workflow:
+
+   ```sh
+   git tag v0.1.1
+   git push origin v0.1.1
+   ```
+
+4. Watch the run under
+   [Actions](https://github.com/hektor1966/bitbucket-mcp-server-datacenter/actions);
+   on success the new version appears on
+   [PyPI](https://pypi.org/project/bitbucket-mcp-server-datacenter/).
+5. Verify the published release installs cleanly:
+
+   ```sh
+   uvx bitbucket-mcp-server-datacenter@<version> --help
+   ```
+
+### Manual publish (fallback)
+
+Only if CI is unavailable. Build, inspect, and upload locally with a PyPI API
+token (never commit it):
 
 ```sh
 uv build
-tar -tzf dist/*.tar.gz   # sanity-check the sdist contents (no secrets)
-```
-
-**Manual upload.** Authenticate with a PyPI API token and publish:
-
-```sh
-# optional dry run against TestPyPI first
-uv publish --publish-url https://test.pypi.org/legacy/
-
-# production
-uv publish
-```
-
-**Automated release (recommended).** The
-[`.github/workflows/release.yml`](.github/workflows/release.yml) workflow runs
-the tests, builds the distributions, and publishes to PyPI via
-[Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC, no stored
-token) whenever a `v*` tag is pushed. Configure a trusted publisher for this
-repository/workflow on PyPI once, then cut a release:
-
-```sh
-git tag v0.1.0
-git push origin v0.1.0
+tar -tzf dist/*.tar.gz                                   # no secrets in sdist
+uv publish --publish-url https://test.pypi.org/legacy/   # optional TestPyPI dry run
+uv publish                                               # production (prompts for token)
 ```
 
 ## Tools
