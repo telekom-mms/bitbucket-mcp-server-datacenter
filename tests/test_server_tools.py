@@ -70,6 +70,86 @@ def test_create_pull_request_omits_empty_description(captured):
     assert "description" not in body
 
 
+def _reviewer_client(monkeypatch, calls, default_reviewers, *, ausername=""):
+    """Wire server tools to a client that answers repo/default-reviewer/whoami."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        path = request.url.path
+        if path.endswith("/application-properties"):
+            headers = {"X-AUSERNAME": ausername} if ausername else {}
+            return httpx.Response(200, json={"version": "8.0"}, headers=headers)
+        if "/default-reviewers/" in path:
+            return httpx.Response(200, json=default_reviewers)
+        if path.endswith("/repos/repo"):
+            return httpx.Response(200, json={"id": 42, "slug": "repo"})
+        return httpx.Response(200, json={"id": 99})
+
+    client = BitbucketClient(
+        "https://bb.example.com",
+        token="BBDC-tok",
+        transport=httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr(server, "_get_client", lambda: client)
+
+
+def test_create_pull_request_applies_default_reviewers(monkeypatch):
+    import json as _json
+
+    calls: list[httpx.Request] = []
+    _reviewer_client(
+        monkeypatch,
+        calls,
+        [{"name": "alice"}, {"name": "bob"}],
+        ausername="carol",
+    )
+    server.create_pull_request("PROJ", "repo", "t", "feature/x", "main")
+
+    dr = next(r for r in calls if "/default-reviewers/" in r.url.path)
+    assert dr.url.params.get("sourceRefId") == "refs/heads/feature/x"
+    assert dr.url.params.get("targetRefId") == "refs/heads/main"
+    assert dr.url.params.get("sourceRepoId") == "42"
+
+    post = calls[-1]
+    body = _json.loads(post.content)
+    names = [r["user"]["name"] for r in body["reviewers"]]
+    assert names == ["alice", "bob"]
+
+
+def test_create_pull_request_excludes_author_and_merges_explicit(monkeypatch):
+    import json as _json
+
+    calls: list[httpx.Request] = []
+    _reviewer_client(
+        monkeypatch,
+        calls,
+        [{"name": "alice"}, {"name": "carol"}],
+        ausername="carol",
+    )
+    server.create_pull_request(
+        "PROJ", "repo", "t", "feature/x", "main", reviewers=["dave", "alice"]
+    )
+
+    body = _json.loads(calls[-1].content)
+    names = [r["user"]["name"] for r in body["reviewers"]]
+    # dave + alice explicit, alice from defaults deduped, carol (author) excluded
+    assert names == ["dave", "alice"]
+
+
+def test_create_pull_request_skips_default_reviewers_when_disabled(monkeypatch):
+    import json as _json
+
+    calls: list[httpx.Request] = []
+    _reviewer_client(monkeypatch, calls, [{"name": "alice"}])
+    server.create_pull_request(
+        "PROJ", "repo", "t", "feature/x", "main", apply_default_reviewers=False
+    )
+
+    assert not any("/default-reviewers/" in r.url.path for r in calls)
+    body = _json.loads(calls[-1].content)
+    assert "reviewers" not in body
+
+
 # -- create_branch ----------------------------------------------------------
 def test_create_branch_payload(captured):
     server.create_branch("PROJ", "repo", "feature/x", "main")
