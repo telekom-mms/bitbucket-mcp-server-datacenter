@@ -18,7 +18,7 @@
         "bitbucket-mcp-server-datacenter"
       ],
       "env": {
-        "BITBUCKET_BASE_URL": "https://bitbucket-stage.telekom-mms.com",
+        "BITBUCKET_BASE_URL": "https://www.example.com",
         "BITBUCKET_TOKEN": "${input:bitbucket_token}",
         "ENABLE_TOOLS": "all"
       }
