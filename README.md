@@ -71,7 +71,7 @@ The server reads configuration from environment variables:
 
 | Variable               | Required | Description                                                |
 | ---------------------- | -------- | ---------------------------------------------------------- |
-| `BITBUCKET_BASE_URL`   | yes      | Base URL, e.g. `https://bitbucket-stage.telekom-mms.com`   |
+| `BITBUCKET_BASE_URL`   | yes      | Base URL, e.g. `https://example.com`   |
 | `BITBUCKET_TOKEN`      | \*       | HTTP access token, sent as `Authorization: Bearer <token>` |
 | `BITBUCKET_USERNAME`   | \*       | Username for Basic auth (used together with a secret)      |
 | `BITBUCKET_PASSWORD`   | \*       | Password / API token for Basic auth                        |
@@ -157,7 +157,7 @@ masked input on startup and is never written to the file. Adjust
 
 ```sh
 uv sync
-BITBUCKET_BASE_URL="https://bitbucket-stage.telekom-mms.com" \
+BITBUCKET_BASE_URL="https://example.com" \
 BITBUCKET_TOKEN="<your-token>" \
 ENABLE_TOOLS="read" \
 uv run bitbucket-mcp-server-datacenter
