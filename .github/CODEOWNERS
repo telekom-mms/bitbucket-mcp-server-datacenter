@@ -1,0 +1,10 @@
+# Code owners for bitbucket-mcp-server-datacenter
+#
+# These owners are automatically requested for review on pull requests.
+# Combine with a branch protection rule / ruleset that requires review from
+# Code Owners to make this enforcing.
+#
+# TODO: replace the placeholder below with the actual maintainer team or users,
+# e.g. "@telekom-mms/mcp-maintainers" or individual "@username" entries.
+
+* @hektor1966
