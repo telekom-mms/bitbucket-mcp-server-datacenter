@@ -61,7 +61,7 @@ If the package is not on an index, `uvx` can install it directly from the
 repository — still no manual clone:
 
 ```sh
-uvx --from git+https://github.com/hektor1966/bitbucket-mcp-server-datacenter \
+uvx --from git+https://github.com/telekom-mms/bitbucket-mcp-server-datacenter \
   bitbucket-mcp-server-datacenter
 ```
 
@@ -183,7 +183,7 @@ Already configured for this project; only needed when forking or re-creating it.
 1. **PyPI trusted publisher** — on the project's
    [publishing settings](https://pypi.org/manage/project/bitbucket-mcp-server-datacenter/settings/publishing/),
    add a GitHub publisher with:
-   - Owner: `hektor1966`
+   - Owner: `telekom-mms`
    - Repository: `bitbucket-mcp-server-datacenter`
    - Workflow: `release.yml`
    - Environment: `pypi`
@@ -205,7 +205,7 @@ Already configured for this project; only needed when forking or re-creating it.
    ```
 
 4. Watch the run under
-   [Actions](https://github.com/hektor1966/bitbucket-mcp-server-datacenter/actions);
+   [Actions](https://github.com/telekom-mms/bitbucket-mcp-server-datacenter/actions);
    on success the new version appears on
    [PyPI](https://pypi.org/project/bitbucket-mcp-server-datacenter/).
 5. Verify the published release installs cleanly:
