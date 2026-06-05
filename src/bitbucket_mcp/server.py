@@ -47,7 +47,7 @@ from typing import Annotated, Any, Callable, Optional
 from fastmcp import FastMCP
 from pydantic import Field
 
-from .client import BitbucketClient, project_path
+from .client import BitbucketClient, BitbucketError, project_path
 
 mcp = FastMCP(
     name="bitbucket-datacenter",
@@ -343,8 +343,24 @@ def create_pull_request(
     from_branch: Annotated[str, Field(description="Source branch name.")],
     to_branch: Annotated[str, Field(description="Target branch name.")],
     description: Annotated[Optional[str], Field(description="Optional PR description.")] = None,
+    reviewers: Annotated[
+        Optional[list[str]],
+        Field(description="Reviewer usernames to add, in addition to default reviewers."),
+    ] = None,
+    apply_default_reviewers: Annotated[
+        bool,
+        Field(description="Resolve and add the repo's default reviewers for this branch pair."),
+    ] = True,
 ) -> dict[str, Any]:
-    """Create a pull request between two branches in the same repository."""
+    """Create a pull request between two branches in the same repository.
+
+    By default the repository's configured *default reviewers* for the given
+    source/target branch pair are resolved and added automatically. Pass
+    ``apply_default_reviewers=False`` to skip that, and/or ``reviewers`` to add
+    explicit reviewers by username. The PR author is always excluded, since
+    Bitbucket rejects a PR whose author is also a reviewer.
+    """
+    client = _get_client()
     ref = {
         "repository": {"slug": slug, "project": {"key": project}},
     }
@@ -355,7 +371,71 @@ def create_pull_request(
     }
     if description:
         payload["description"] = description
-    return _get_client().post(f"{_api(project, slug)}/pull-requests", json=payload)
+
+    reviewer_names: list[str] = list(reviewers or [])
+    if apply_default_reviewers:
+        reviewer_names.extend(
+            _resolve_default_reviewers(client, project, slug, from_branch, to_branch)
+        )
+
+    author = (client.whoami() or {}).get("user") or ""
+    seen: set[str] = set()
+    unique: list[str] = []
+    for name in reviewer_names:
+        key = name.lower()
+        if not name or key in seen or key == author.lower():
+            continue
+        seen.add(key)
+        unique.append(name)
+
+    if unique:
+        payload["reviewers"] = [{"user": {"name": name}} for name in unique]
+
+    return client.post(f"{_api(project, slug)}/pull-requests", json=payload)
+
+
+def _resolve_default_reviewers(
+    client: BitbucketClient,
+    project: str,
+    slug: str,
+    from_branch: str,
+    to_branch: str,
+) -> list[str]:
+    """Return usernames of the repo's default reviewers for a branch pair.
+
+    Uses the Bitbucket DC default-reviewers add-on API, which evaluates the
+    configured reviewer conditions for the given source/target refs. Failures
+    are non-fatal: if the endpoint is unavailable, an empty list is returned so
+    PR creation still succeeds.
+    """
+    try:
+        repo = client.get(_api(project, slug))
+        repo_id = repo.get("id") if isinstance(repo, dict) else None
+        if repo_id is None:
+            return []
+        path = (
+            f"/rest/default-reviewers/1.0/projects/{project_path(project)}"
+            f"/repos/{slug}/reviewers"
+        )
+        result = client.get(
+            path,
+            params={
+                "sourceRepoId": repo_id,
+                "targetRepoId": repo_id,
+                "sourceRefId": f"refs/heads/{from_branch}",
+                "targetRefId": f"refs/heads/{to_branch}",
+            },
+        )
+    except BitbucketError:
+        return []
+
+    if not isinstance(result, list):
+        return []
+    return [
+        u["name"]
+        for u in result
+        if isinstance(u, dict) and isinstance(u.get("name"), str)
+    ]
 
 
 @_tool("write")

@@ -254,7 +254,7 @@ All tools below are gated by [`ENABLE_TOOLS`](#tool-enablement). The
 | -------------------------- | -------------------------------------------------------------------- |
 | `put_file`                 | Create/update a file via a commit; seeds the default branch if empty.|
 | `create_branch`            | Create a branch from a start point.                                  |
-| `create_pull_request`      | Create a PR between two branches in the same repo.                   |
+| `create_pull_request`      | Create a PR between two branches; resolves & applies the repo's default reviewers by default. |
 | `add_pull_request_comment` | Add a general comment to a PR.                                       |
 | `merge_pull_request`       | Merge a PR (requires current PR `version`).                          |
 | `decline_pull_request`     | Decline a PR (requires current PR `version`).                        |
@@ -267,6 +267,14 @@ All tools below are gated by [`ENABLE_TOOLS`](#tool-enablement). The
 - `merge_pull_request` / `decline_pull_request` require the current PR
   `version` (obtain it via `get_pull_request`) for optimistic locking.
 - `delete_branch` uses the `branch-utils` API (`/rest/branch-utils/1.0/...`).
+- `create_pull_request` applies the repository's **default reviewers** by
+  default: it resolves them via the default-reviewers add-on API
+  (`/rest/default-reviewers/1.0/...`) for the given source/target branch pair
+  and adds them to the PR. Pass `apply_default_reviewers=false` to skip this,
+  and/or `reviewers=["user1", ...]` to add explicit reviewers by username. The
+  PR author is always excluded (Bitbucket rejects a PR whose author is also a
+  reviewer). If the default-reviewers endpoint is unavailable, PR creation
+  still succeeds without default reviewers.
 
 ## Tests
 
