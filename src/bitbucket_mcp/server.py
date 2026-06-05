@@ -3,7 +3,7 @@
 Configuration is read from environment variables so it can be supplied via
 VS Code MCP inputs without hardcoding secrets:
 
-    BITBUCKET_BASE_URL   e.g. https://bitbucket-stage.telekom-mms.com
+    BITBUCKET_BASE_URL   e.g. https://example.com
     BITBUCKET_TOKEN      HTTP access token (sent as `Authorization: Bearer ...`)
     BITBUCKET_USERNAME   optional; if set with a secret -> Basic auth
     BITBUCKET_PASSWORD   optional; password/API token for Basic auth
