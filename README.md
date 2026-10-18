@@ -193,10 +193,14 @@ Already configured for this project; only needed when forking or re-creating it.
 
 ### Cutting a release
 
+For manually merged changes, use the following steps. Choose a version above
+all existing `v*` tags, including automatic dependency releases.
+
 1. Update `version` in [`pyproject.toml`](pyproject.toml) following
    [SemVer](https://semver.org/). PyPI never allows re-uploading an existing
-   version, so every release needs a new number.
-2. Commit the bump and push to `main`.
+   version, so every release needs a new number. Run `uv lock` to synchronize
+   the project's version in [`uv.lock`](uv.lock).
+2. Commit both version changes and push to `main`.
 3. Tag the release and push the tag — this triggers the workflow:
 
    ```sh
@@ -213,6 +217,56 @@ Already configured for this project; only needed when forking or re-creating it.
    ```sh
    uvx bitbucket-mcp-server-datacenter@<version> --help
    ```
+
+### Automatic Dependabot merges and releases
+
+[CI](.github/workflows/ci.yml) tests PRs on Python 3.11 and 3.12 and builds
+the distributions. [Dependabot automation](.github/workflows/dependabot.yml)
+verifies Dependabot's metadata and waits for both successful test jobs on the
+exact PR head before squash-merging patch/minor updates. Major updates remain
+manual. Unexpected file changes and failed or missing tests block automation.
+Normal PRs still require code-owner review.
+
+Each automatically merged Dependabot PR (including GitHub Actions updates)
+creates a new patch-version tag. The version is one patch above the highest
+stable `vMAJOR.MINOR.PATCH` tag or source version. The tagged commit contains
+the exact merged source plus updated versions in `pyproject.toml` and `uv.lock`.
+These version-only commits live on the release tags, not on `main`; the source
+version on `main` can therefore be lower than the latest published version.
+No direct push to the protected default branch is needed.
+
+The app-created tag triggers `release.yml`, which tests, builds, publishes to
+PyPI using Trusted Publishing, and then creates a GitHub release. A normal
+`GITHUB_TOKEN` cannot replace the app token here: its tag pushes do not trigger
+another workflow. Retrying a tag-creation job reuses an existing tag for that
+PR; retry a failed publication in the corresponding Release workflow.
+Manual merges, including major updates, do not trigger this automatic release.
+
+#### One-time automation setup
+
+1. Create a dedicated GitHub App, installed **only on this repository**, with
+   repository permissions **Contents: read/write**, **Pull requests:
+   read/write**, and **Workflows: read/write** (needed for workflow dependency
+   updates). No webhook or organization permissions are needed.
+2. Set the repository Actions variable `DEPENDABOT_APP_CLIENT_ID` to the app's
+   client ID and the Actions secret `DEPENDABOT_APP_PRIVATE_KEY` to its private
+   key. Never commit the private key.
+3. In the existing `main` branch protection rule, add only this app under
+   **Allow specified actors to bypass required pull requests**. Keep the
+   required approval and code-owner review settings for normal PRs.
+4. Once CI has run, require **Tests (3.11)** and **Tests (3.12)** status checks
+   from GitHub Actions. Require branches to be up to date before merging.
+   Do not give the app a broad ruleset bypass that skips status checks.
+5. Merge these workflows into `main` before relying on automation. Existing
+   Dependabot PRs can be reopened or updated to trigger it. The privileged
+   workflow runs only default-branch scripts, never code from the PR.
+
+Automation explicitly fails if app credentials, permissions, or the bypass
+are missing. Its test-wait timeout is 20 minutes; rerun the merge job if CI
+takes longer. After another PR changes `main`, update an outdated Dependabot
+branch (for example with `@dependabot rebase`) to run tests and automation again.
+No GitHub **Allow auto-merge** setting is needed: this workflow performs the
+merge itself after tests, using the narrowly scoped app permission.
 
 ### Manual publish (fallback)
 
@@ -293,4 +347,3 @@ Offline unit tests (no network; httpx `MockTransport`) cover three layers:
 uv sync
 uv run pytest -q
 ```
-
